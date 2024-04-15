@@ -1,0 +1,55 @@
+import pandas as pd
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+# Definimos los datos de muestra
+conexiones = {
+    "origen": ["A", "A", "B", "B", "C", "C", "D", "D", "D", "E"],
+    "destino": ["B", "C", "A", "D", "A", "D", "B", "C", "E", "D"]
+}
+
+estaciones = {
+    "estacion": ["A", "B", "C", "D", "E"],
+    "num_conexiones": [2, 2, 2, 3, 1],
+    "tiempo_promedio": [5, 7, 6, 8, 4]
+}
+
+# Convertimos los diccionarios en DataFrames de pandas
+df_conexiones = pd.DataFrame(conexiones)
+df_estaciones = pd.DataFrame(estaciones)
+
+# Fusionamos los DataFrames para obtener un solo conjunto de datos
+transporte_data = pd.merge(df_conexiones, df_estaciones, left_on="origen", right_on="estacion", how="left")
+transporte_data = pd.merge(transporte_data, df_estaciones, left_on="destino", right_on="estacion", suffixes=('_origen', '_destino'), how="left")
+
+# Eliminamos columnas redundantes
+transporte_data = transporte_data.drop(columns=["estacion_origen", "estacion_destino"])
+
+# Visualizamos las primeras filas del conjunto de datos
+print(transporte_data.head())
+
+# Seleccionamos las características relevantes para el agrupamiento
+X = transporte_data[['num_conexiones_origen', 'tiempo_promedio_origen', 'num_conexiones_destino', 'tiempo_promedio_destino']]
+
+# Aplicamos el algoritmo de KMeans para agrupar las estaciones
+kmeans = KMeans(n_clusters=3, random_state=42)
+clusters = kmeans.fit_predict(X)
+
+# Agregamos la columna de clusters al conjunto de datos
+transporte_data['cluster'] = clusters
+
+# Visualizamos los resultados de los clusters
+plt.scatter(X.iloc[:, 0], X.iloc[:, 1], c=clusters, cmap='viridis')
+plt.xlabel('Número de Conexiones (Origen)')
+plt.ylabel('Tiempo Promedio de Viaje (Origen)')
+plt.title('Agrupamiento de Estaciones de Transporte Masivo')
+plt.colorbar(label='Cluster')
+plt.show()
+
+# Podemos realizar análisis adicional de los clusters y su interpretación
+print(transporte_data.groupby('cluster').mean())
+
+# Guardamos los resultados en un nuevo archivo CSV
+transporte_data.to_csv('transporte_data_con_clusters.csv', index=False)
+
+
